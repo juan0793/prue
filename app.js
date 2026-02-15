@@ -4,6 +4,7 @@
   profiles: "gym-tracker-profiles-by-user-v1",
   favorites: "gym-tracker-favorites-by-user-v1",
   posts: "gym-tracker-posts-v1",
+  backup: "gym-tracker-backup-v1",
   auth: "gym-tracker-auth-v1",
   authName: "gym-tracker-auth-name-v1",
 };
@@ -25,6 +26,10 @@ const twitterLoginButton = q("#twitter-login");
 const loginError = q("#login-error");
 const logoutButton = q("#logout-btn");
 const welcomeMessage = q("#welcome-message");
+const notificationButton = q("#notification-btn");
+const notificationCountEl = q("#notification-count");
+const notificationPanel = q("#notification-panel");
+const notificationListEl = q("#notification-list");
 
 const navTabs = qa(".nav-tab");
 const appViews = qa(".app-view");
@@ -32,6 +37,9 @@ const adminTab = q("#admin-tab");
 
 const feedList = q("#feed-list");
 const loadMoreTrendsButton = q("#load-more-trends");
+const homeSpotlightList = q("#home-spotlight-list");
+const homeAchievements = q("#home-achievements");
+const homeTopicButtons = qa("#home-topic-tabs button[data-topic]");
 const communityUserList = q("#community-user-list");
 const postForm = q("#post-form");
 const postInput = q("#post-input");
@@ -57,7 +65,8 @@ const lastWorkoutEl = q("#last-workout");
 const quickTotalEntriesEl = q("#quick-total-entries");
 const quickTotalVolumeEl = q("#quick-total-volume");
 const quickLastWorkoutEl = q("#quick-last-workout");
-const recordsListEl = q("#records-list");
+const groupedStatsListEl = q("#grouped-stats-list");
+const aiCoachSummaryEl = q("#ai-coach-summary");
 const periodDayEl = q("#period-day");
 const periodMonthEl = q("#period-month");
 const periodYearEl = q("#period-year");
@@ -83,6 +92,9 @@ const profileRoutineSelect = q("#profile-routine");
 const profilePhotoInput = q("#profile-photo");
 const profileAvatar = q("#profile-avatar");
 const saveProfileButton = q("#save-profile");
+const exportBackupButton = q("#export-backup");
+const importBackupButton = q("#import-backup");
+const importBackupFileInput = q("#import-backup-file");
 const profileMessage = q("#profile-message");
 
 const favoriteInput = q("#favorite-input");
@@ -105,6 +117,7 @@ let favorites = [];
 let selectedGroup = "";
 let authMode = "login";
 let feedPage = 1;
+let homeTopic = "logros";
 let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 const FEED_PAGE_SIZE = 10;
 
@@ -116,6 +129,7 @@ const WORKOUT_CATALOG = {
   gemelo: ["Elevacion de talones de pie", "Elevacion de talones sentado", "Donkey calf raise", "Prensa para gemelo"],
   gluteo: ["Hip thrust", "Patada de gluteo en polea", "Sentadilla sumo", "Puente de gluteo"],
 };
+const EXERCISE_GROUP_MAP = buildExerciseGroupMap(WORKOUT_CATALOG);
 
 seedAdmin();
 init();
@@ -125,20 +139,34 @@ function init() {
   if (q("#date")) q("#date").value = today;
   if (periodDateInput) periodDateInput.value = today;
   if (dailyDateInput) dailyDateInput.value = today;
+  restoreFromBackupIfNeeded();
+  requestPersistentStorage();
 
   tabLoginButton?.addEventListener("click", () => setAuthMode("login"));
   tabRegisterButton?.addEventListener("click", () => setAuthMode("register"));
   twitterLoginButton?.addEventListener("click", onTwitterLogin);
   authForm?.addEventListener("submit", onAuthSubmit);
   logoutButton?.addEventListener("click", onLogout);
+  notificationButton?.addEventListener("click", onToggleNotifications);
   navTabs.forEach((tab) => tab.addEventListener("click", () => switchView(tab.dataset.view)));
 
   loadMoreTrendsButton?.addEventListener("click", onLoadMoreTrends);
   postForm?.addEventListener("submit", onCreatePost);
+  homeTopicButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      homeTopic = button.dataset.topic || "logros";
+      homeTopicButtons.forEach((b) => b.classList.toggle("active", b === button));
+      renderHomeHighlights();
+    });
+  });
 
   form?.addEventListener("submit", onSubmit);
   searchInput?.addEventListener("input", renderWorkoutRows);
   clearAllButton?.addEventListener("click", onClearAll);
+  if (clearAllButton) {
+    clearAllButton.textContent = "Historial protegido";
+    clearAllButton.disabled = true;
+  }
   muscleOptionsEl?.addEventListener("click", onMuscleGroupClick);
   routineStyleSelect?.addEventListener("input", renderRoutineRecommendation);
   periodDateInput?.addEventListener("input", renderPeriodResults);
@@ -147,6 +175,9 @@ function init() {
   calendarNextButton?.addEventListener("click", () => moveCalendarMonth(1));
 
   saveProfileButton?.addEventListener("click", onSaveProfile);
+  exportBackupButton?.addEventListener("click", onExportBackup);
+  importBackupButton?.addEventListener("click", () => importBackupFileInput?.click());
+  importBackupFileInput?.addEventListener("change", onImportBackupFile);
   profileRoutineSelect?.addEventListener("input", onProfileRoutineChange);
   profilePhotoInput?.addEventListener("change", onProfilePhotoSelected);
   addFavoriteButton?.addEventListener("click", onAddFavorite);
@@ -239,6 +270,7 @@ function showApp() {
   if (welcomeMessage) welcomeMessage.textContent = `Bienvenido ${getAuthName()}`;
   adminTab?.classList.toggle("hidden", !isAdmin());
   feedPage = 1;
+  notificationPanel?.classList.add("hidden");
   switchView("home");
 }
 
@@ -250,6 +282,7 @@ function switchView(viewName) {
 
 function renderHomeFeed() {
   if (!feedList) return;
+  renderHomeHighlights();
   const items = buildHomeFeedItems();
   const visible = items.slice(0, feedPage * FEED_PAGE_SIZE);
 
@@ -264,6 +297,128 @@ function renderHomeFeed() {
   });
 
   loadMoreTrendsButton?.classList.toggle("hidden", visible.length >= items.length);
+}
+
+function renderHomeHighlights() {
+  renderHomeSpotlight();
+  renderHomeAchievements();
+}
+
+function renderHomeSpotlight() {
+  if (!homeSpotlightList) return;
+  const items = getHomeSpotlightItems(homeTopic);
+  homeSpotlightList.innerHTML = "";
+  items.forEach((item) => {
+    const article = document.createElement("article");
+    article.className = "spotlight-card";
+    article.innerHTML = `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" /><div><small>${escapeHtml(
+      item.badge
+    )}</small><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.text)}</p></div>`;
+    homeSpotlightList.appendChild(article);
+  });
+}
+
+function renderHomeAchievements() {
+  if (!homeAchievements) return;
+  const badges = buildUserAchievementBadges();
+  homeAchievements.innerHTML = "";
+  badges.forEach((badge) => {
+    const node = document.createElement("article");
+    node.className = "achievement-pill";
+    node.innerHTML = `<strong>${escapeHtml(badge.title)}</strong><span>${escapeHtml(badge.text)}</span>`;
+    homeAchievements.appendChild(node);
+  });
+}
+
+function getHomeSpotlightItems(topic) {
+  const goal = (profileGoalInput?.value || "").toLowerCase();
+  const isCut = goal.includes("defin") || goal.includes("bajar");
+  const nutritionText = isCut
+    ? "Prioriza proteina alta y carbohidrato alrededor del entreno."
+    : "Sube calorias limpias con proteina y carbohidratos complejos.";
+  const catalog = {
+    logros: [
+      {
+        badge: "Progreso",
+        title: "Consistencia semanal",
+        text: "Completa 3-4 dias para acelerar resultados visibles.",
+        image:
+          "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=60",
+      },
+      {
+        badge: "Fuerza",
+        title: "Sobrecarga progresiva",
+        text: "Si cumples repeticiones objetivo, sube 2.5 kg la proxima sesion.",
+        image:
+          "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=60",
+      },
+    ],
+    comida: [
+      {
+        badge: "Nutricion",
+        title: "Plato inteligente",
+        text: nutritionText,
+        image:
+          "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=800&q=60",
+      },
+      {
+        badge: "Hidratacion",
+        title: "Objetivo diario",
+        text: "Apunta a 30-35 ml de agua por kg de peso corporal.",
+        image:
+          "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=800&q=60",
+      },
+    ],
+    recuperacion: [
+      {
+        badge: "Recuperacion",
+        title: "Dormir para crecer",
+        text: "7-9 horas mejora rendimiento, hormonas y sintesis muscular.",
+        image:
+          "https://images.unsplash.com/photo-1455642305367-68834a7a4f3f?auto=format&fit=crop&w=800&q=60",
+      },
+      {
+        badge: "Movilidad",
+        title: "Reset post-entreno",
+        text: "8 minutos de movilidad reducen rigidez y mejoran tecnica.",
+        image:
+          "https://images.unsplash.com/photo-1599058917212-d750089bc0be?auto=format&fit=crop&w=800&q=60",
+      },
+    ],
+  };
+  return catalog[topic] || catalog.logros;
+}
+
+function buildUserAchievementBadges() {
+  const weekEntries = entries.filter((entry) => daysAgo(entry.date) <= 7);
+  const weekVolume = weekEntries.reduce((acc, entry) => acc + calculateVolume(entry), 0);
+  const activeDays = new Set(weekEntries.map((entry) => entry.date)).size;
+  const streak = getCurrentStreakDays(entries);
+  const best = entries.reduce((max, entry) => Math.max(max, Number(entry.weight || 0)), 0);
+
+  return [
+    { title: `Racha ${streak} dias`, text: streak >= 3 ? "Muy buena constancia." : "Suma 1 sesion para extender la racha." },
+    { title: `${weekVolume.toFixed(0)} kg semana`, text: `${activeDays} dias activos en los ultimos 7 dias.` },
+    { title: `Carga tope ${best.toFixed(1)} kg`, text: "Tu mejor marca registrada hasta ahora." },
+  ];
+}
+
+function getCurrentStreakDays(data) {
+  if (!data.length) return 0;
+  const uniqueDates = [...new Set(data.map((entry) => entry.date))].sort((a, b) => (a < b ? 1 : -1));
+  let streak = 0;
+  let cursor = new Date(uniqueDates[0]);
+  for (let i = 0; i < uniqueDates.length; i += 1) {
+    const current = new Date(uniqueDates[i]);
+    const diff = Math.floor((cursor - current) / 86400000);
+    if (i === 0 || diff <= 1) {
+      streak += 1;
+      cursor = current;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 function onLoadMoreTrends() {
@@ -400,11 +555,7 @@ function onDelete(id) {
 }
 
 function onClearAll() {
-  if (!entries.length) return;
-  if (!window.confirm("Borrar todo el historial del usuario actual?")) return;
-  entries = [];
-  persistEntriesForCurrentUser();
-  render();
+  window.alert("El historial esta protegido y no se puede borrar desde la app.");
 }
 
 function onMuscleGroupClick(event) {
@@ -578,6 +729,49 @@ function onProfilePhotoSelected(event) {
   reader.readAsDataURL(file);
 }
 
+function onExportBackup() {
+  const payload = JSON.stringify(buildBackupPayload(), null, 2);
+  const blob = new Blob([payload], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `gym-tracker-backup-${stamp}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  if (profileMessage) profileMessage.textContent = "Respaldo descargado correctamente.";
+}
+
+function onImportBackupFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(String(reader.result || "{}"));
+      if (!isValidBackupPayload(data)) throw new Error("Formato invalido");
+      users = data.users || [];
+      entriesByUser = data.entriesByUser || {};
+      profilesByUser = data.profilesByUser || {};
+      favoritesByUser = data.favoritesByUser || {};
+      posts = data.posts || [];
+      write(KEYS.users, users);
+      write(KEYS.entries, entriesByUser);
+      write(KEYS.profiles, profilesByUser);
+      write(KEYS.favorites, favoritesByUser);
+      write(KEYS.posts, posts);
+      hydrateUserData();
+      render();
+      if (profileMessage) profileMessage.textContent = "Respaldo restaurado correctamente.";
+    } catch {
+      if (profileMessage) profileMessage.textContent = "No se pudo restaurar el archivo de respaldo.";
+    } finally {
+      if (importBackupFileInput) importBackupFileInput.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
+
 function onAddFavorite() {
   const value = favoriteInput.value.trim();
   if (!value) return;
@@ -666,19 +860,43 @@ function renderWeightInsights() {
   insightNextEl.textContent = `${last.exercise}: prueba ${nextWeight.toFixed(1)} kg manteniendo tecnica limpia`;
 }
 
-function renderRecords() {
-  recordsListEl.innerHTML = "";
-  if (!entries.length) return (recordsListEl.innerHTML = "<li>Sin datos.</li>");
-  const best = new Map();
-  entries.forEach((e) => {
-    const k = e.exercise.toLowerCase();
-    if (!best.get(k) || e.weight > best.get(k).weight) best.set(k, e);
+function renderGroupedStats() {
+  if (!groupedStatsListEl || !aiCoachSummaryEl) return;
+  groupedStatsListEl.innerHTML = "";
+  const weekEntries = entries.filter((entry) => daysAgo(entry.date) <= 7);
+  if (!weekEntries.length) {
+    aiCoachSummaryEl.textContent = "No hay entrenamientos en los ultimos 7 dias.";
+    groupedStatsListEl.innerHTML = "<li>Sin datos semanales.</li>";
+    return;
+  }
+
+  const grouped = new Map();
+  weekEntries.forEach((entry) => {
+    const group = detectExerciseGroup(entry.exercise);
+    if (!grouped.has(group)) grouped.set(group, { entries: 0, volume: 0, maxWeight: 0, exercises: new Set() });
+    const bucket = grouped.get(group);
+    bucket.entries += 1;
+    bucket.volume += calculateVolume(entry);
+    bucket.maxWeight = Math.max(bucket.maxWeight, Number(entry.weight || 0));
+    bucket.exercises.add(entry.exercise.toLowerCase());
   });
-  [...best.values()].forEach((r) => {
+
+  const sortedGroups = [...grouped.entries()].sort((a, b) => b[1].volume - a[1].volume);
+  sortedGroups.forEach(([group, data]) => {
     const li = document.createElement("li");
-    li.textContent = `${r.exercise}: ${r.weight} kg x ${r.reps} reps (${r.date})`;
-    recordsListEl.appendChild(li);
+    li.innerHTML = `<strong>${capitalize(group)}</strong><span>${data.entries} ejercicios | ${data.exercises.size} variantes | ${data.volume.toFixed(
+      0
+    )} kg volumen | carga tope ${data.maxWeight.toFixed(1)} kg</span>`;
+    groupedStatsListEl.appendChild(li);
   });
+
+  const topGroup = sortedGroups[0];
+  const totalWeekVolume = weekEntries.reduce((acc, entry) => acc + calculateVolume(entry), 0);
+  const weekDays = new Set(weekEntries.map((entry) => entry.date)).size;
+  const planSignal = weekDays < 3 ? "Sube frecuencia a 3-4 dias para progresar." : "Buena frecuencia semanal, manten consistencia.";
+  aiCoachSummaryEl.textContent = `AI Coach: esta semana moviste ${totalWeekVolume.toFixed(
+    0
+  )} kg en ${weekDays} dias. Enfasis principal en ${capitalize(topGroup[0])}. ${planSignal}`;
 }
 
 function renderPeriodResults() {
@@ -803,6 +1021,69 @@ function moveCalendarMonth(offset) {
   renderMiniCalendar();
 }
 
+function onToggleNotifications() {
+  if (!notificationPanel) return;
+  notificationPanel.classList.toggle("hidden");
+}
+
+function renderNotifications() {
+  if (!notificationListEl || !notificationCountEl) return;
+  const notifications = buildSmartNotifications();
+  notificationListEl.innerHTML = "";
+  if (!notifications.length) {
+    notificationListEl.innerHTML = "<li>Sin notificaciones por ahora.</li>";
+    notificationCountEl.textContent = "0";
+    return;
+  }
+  notifications.forEach((note) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${escapeHtml(note.title)}</strong><span>${escapeHtml(note.text)}</span>`;
+    notificationListEl.appendChild(li);
+  });
+  notificationCountEl.textContent = String(notifications.length);
+}
+
+function buildSmartNotifications() {
+  const list = [];
+  if (!entries.length) {
+    list.push({ title: "Comienza hoy", text: "Registra tu primer entrenamiento para activar tu analisis inteligente." });
+    return list;
+  }
+
+  const sorted = entries.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  const last = sorted[0];
+  const weekEntries = sorted.filter((entry) => daysAgo(entry.date) <= 7);
+  const prevWeekEntries = sorted.filter((entry) => {
+    const d = daysAgo(entry.date);
+    return d > 7 && d <= 14;
+  });
+
+  const weekVolume = weekEntries.reduce((acc, entry) => acc + calculateVolume(entry), 0);
+  const prevWeekVolume = prevWeekEntries.reduce((acc, entry) => acc + calculateVolume(entry), 0);
+  const gapDays = Math.max(0, daysAgo(last.date));
+
+  if (gapDays >= 3) {
+    list.push({ title: "Recordatorio", text: `Llevas ${gapDays} dias sin entrenar. Te conviene volver hoy con una sesion moderada.` });
+  }
+  if (prevWeekVolume > 0) {
+    const deltaPct = ((weekVolume - prevWeekVolume) / prevWeekVolume) * 100;
+    const trend = deltaPct >= 0 ? `subio ${deltaPct.toFixed(1)}%` : `bajo ${Math.abs(deltaPct).toFixed(1)}%`;
+    list.push({ title: "Tendencia semanal", text: `Tu volumen semanal ${trend} vs la semana anterior.` });
+  }
+
+  const bestByExercise = getBestSetByExercise(entries);
+  const lastBest = bestByExercise.get(last.exercise.toLowerCase());
+  if (lastBest && lastBest.id === last.id) {
+    list.push({ title: "Nuevo record", text: `Lograste tu mejor marca en ${last.exercise}: ${last.weight} kg.` });
+  }
+
+  if (weekEntries.length < 4) {
+    list.push({ title: "Frecuencia", text: "Para hipertrofia, apunta a 4-6 ejercicios por semana como base minima." });
+  }
+
+  return list.slice(0, 4);
+}
+
 function renderAdmin() {
   if (!isAdmin()) return;
   const totalEntries = Object.values(entriesByUser).reduce((acc, list) => acc + (Array.isArray(list) ? list.length : 0), 0);
@@ -823,18 +1104,7 @@ function renderAdmin() {
 
 function deleteUser(username) {
   if (!isAdmin()) return;
-  if (!window.confirm(`Eliminar usuario ${username}?`)) return;
-  users = users.filter((u) => u.username.toLowerCase() !== username.toLowerCase());
-  delete entriesByUser[username];
-  delete profilesByUser[username];
-  delete favoritesByUser[username];
-  posts = posts.filter((p) => p.user.toLowerCase() !== username.toLowerCase());
-  write(KEYS.users, users);
-  write(KEYS.entries, entriesByUser);
-  write(KEYS.profiles, profilesByUser);
-  write(KEYS.favorites, favoritesByUser);
-  write(KEYS.posts, posts);
-  render();
+  window.alert(`La eliminacion de usuarios esta bloqueada para proteger historiales. Usuario objetivo: ${username}.`);
 }
 
 function hydrateUserData() {
@@ -864,11 +1134,12 @@ function render() {
   renderWorkoutRows();
   renderStats();
   renderWeightInsights();
-  renderRecords();
+  renderGroupedStats();
   renderPeriodResults();
   renderDailyAnalysis();
   renderMiniCalendar();
   renderRoutineRecommendation();
+  renderNotifications();
   renderAdmin();
 }
 
@@ -908,6 +1179,26 @@ function formatSigned(value) {
   return numeric > 0 ? `+${numeric}` : `${numeric}`;
 }
 
+function detectExerciseGroup(exerciseName) {
+  const key = String(exerciseName || "").toLowerCase().trim();
+  if (EXERCISE_GROUP_MAP.has(key)) return EXERCISE_GROUP_MAP.get(key);
+  if (key.includes("sentadilla") || key.includes("zancada") || key.includes("femoral") || key.includes("pierna")) return "pierna";
+  if (key.includes("press banca") || key.includes("inclinado") || key.includes("apertur") || key.includes("pecho")) return "pecho";
+  if (key.includes("remo") || key.includes("jalon") || key.includes("dominada") || key.includes("espalda")) return "espalda";
+  if (key.includes("militar") || key.includes("lateral") || key.includes("hombro")) return "hombro";
+  if (key.includes("gemelo") || key.includes("talones") || key.includes("calf")) return "gemelo";
+  if (key.includes("gluteo") || key.includes("hip thrust") || key.includes("puente")) return "gluteo";
+  return "otros";
+}
+
+function buildExerciseGroupMap(catalog) {
+  const map = new Map();
+  Object.entries(catalog).forEach(([group, list]) => {
+    list.forEach((exercise) => map.set(exercise.toLowerCase(), group));
+  });
+  return map;
+}
+
 function formatPeriodResult(list) { return `${list.length} ejercicios | ${list.reduce((acc, e) => acc + calculateVolume(e), 0).toFixed(1)} kg`; }
 function calculateVolume(e) { return e.sets * e.reps * e.weight; }
 function toIsoDate(date) {
@@ -921,7 +1212,7 @@ function isAuthenticated() { try { return sessionStorage.getItem(KEYS.auth) === 
 function setAuthState(v, name) { authFallback = v; authNameFallback = name; try { if (v) { sessionStorage.setItem(KEYS.auth, "1"); sessionStorage.setItem(KEYS.authName, name); } else { sessionStorage.removeItem(KEYS.auth); sessionStorage.removeItem(KEYS.authName); } } catch {} }
 function getAuthName() { try { return sessionStorage.getItem(KEYS.authName) || authNameFallback || "admin"; } catch { return authNameFallback || "admin"; } }
 function read(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } }
-function write(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+function write(key, value) { localStorage.setItem(key, JSON.stringify(value)); saveBackupSnapshot(); }
 function loadUsers() { const v = read(KEYS.users, []); return Array.isArray(v) ? v : []; }
 function loadEntriesByUser() { const v = read(KEYS.entries, {}); return v && typeof v === "object" ? v : {}; }
 function loadProfilesByUser() { const v = read(KEYS.profiles, {}); return v && typeof v === "object" ? v : {}; }
@@ -929,3 +1220,56 @@ function loadFavoritesByUser() { const v = read(KEYS.favorites, {}); return v &&
 function loadPosts() { const v = read(KEYS.posts, []); return Array.isArray(v) ? v : []; }
 function persistEntriesForCurrentUser() { entriesByUser[getAuthName()] = entries; write(KEYS.entries, entriesByUser); }
 function escapeHtml(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
+
+function buildBackupPayload() {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    users,
+    entriesByUser,
+    profilesByUser,
+    favoritesByUser,
+    posts,
+  };
+}
+
+function isValidBackupPayload(data) {
+  return (
+    data &&
+    typeof data === "object" &&
+    Array.isArray(data.users) &&
+    data.entriesByUser &&
+    typeof data.entriesByUser === "object"
+  );
+}
+
+function saveBackupSnapshot() {
+  try {
+    localStorage.setItem(KEYS.backup, JSON.stringify(buildBackupPayload()));
+  } catch {}
+}
+
+function restoreFromBackupIfNeeded() {
+  try {
+    const hasMainData = !!localStorage.getItem(KEYS.users) || !!localStorage.getItem(KEYS.entries);
+    const rawBackup = localStorage.getItem(KEYS.backup);
+    if (hasMainData || !rawBackup) return;
+    const data = JSON.parse(rawBackup);
+    if (!isValidBackupPayload(data)) return;
+    localStorage.setItem(KEYS.users, JSON.stringify(data.users || []));
+    localStorage.setItem(KEYS.entries, JSON.stringify(data.entriesByUser || {}));
+    localStorage.setItem(KEYS.profiles, JSON.stringify(data.profilesByUser || {}));
+    localStorage.setItem(KEYS.favorites, JSON.stringify(data.favoritesByUser || {}));
+    localStorage.setItem(KEYS.posts, JSON.stringify(data.posts || []));
+    users = data.users || [];
+    entriesByUser = data.entriesByUser || {};
+    profilesByUser = data.profilesByUser || {};
+    favoritesByUser = data.favoritesByUser || {};
+    posts = data.posts || [];
+  } catch {}
+}
+
+function requestPersistentStorage() {
+  if (!navigator.storage?.persist) return;
+  navigator.storage.persist().catch(() => {});
+}

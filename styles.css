@@ -191,6 +191,12 @@ button:hover {
   background: linear-gradient(120deg, #0284c7, #1e40af);
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
 .social-login {
   margin-top: 0.8rem;
 }
@@ -234,6 +240,56 @@ button:hover {
 .app-header p {
   margin: 0.35rem 0 0;
   color: var(--muted);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.notification-count {
+  margin-left: 0.35rem;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0 0.22rem;
+}
+
+.notification-panel {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.notification-list {
+  margin: 0.55rem 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.notification-list li {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.notification-list span {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .app-nav {
@@ -299,6 +355,100 @@ h2 {
   margin: 0.2rem 0 0.9rem;
   color: var(--muted);
   font-size: 0.93rem;
+}
+
+.home-highlights {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.home-topic-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.topic-tab {
+  margin-top: 0;
+  border-radius: 999px;
+  padding: 0.42rem 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  font-size: 0.84rem;
+}
+
+.topic-tab.active {
+  color: #fff;
+  border-color: rgba(29, 78, 216, 0.9);
+  background: linear-gradient(120deg, #0ea5e9, #1d4ed8);
+}
+
+.home-spotlight-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.7rem;
+}
+
+.spotlight-card {
+  border: 1px solid rgba(15, 23, 42, 0.11);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.spotlight-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.spotlight-card div {
+  padding: 0.65rem 0.72rem 0.75rem;
+}
+
+.spotlight-card small {
+  color: #0ea5e9;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.spotlight-card h4 {
+  margin: 0.3rem 0 0.35rem;
+  font-size: 0.95rem;
+}
+
+.spotlight-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.home-achievements {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem;
+}
+
+.achievement-pill {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(224, 241, 255, 0.8));
+  display: grid;
+  gap: 0.2rem;
+}
+
+.achievement-pill span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.home-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
 }
 
 .feed-list {
@@ -803,6 +953,28 @@ h2 {
   line-height: 1.4;
 }
 
+.grouped-stats-list {
+  margin: 0.85rem 0 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.grouped-stats-list li {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  padding: 0.62rem 0.72rem;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.grouped-stats-list li span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 .table-wrapper {
   overflow: auto;
 }
@@ -879,6 +1051,13 @@ th {
 
 .favorite-add button {
   margin-top: 0;
+}
+
+.backup-actions {
+  margin-top: 0.55rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
 .favorite-list {
@@ -963,6 +1142,10 @@ th {
   .app-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .header-actions {
+    justify-content: space-between;
   }
 
   .app-nav {

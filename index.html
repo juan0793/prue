@@ -72,8 +72,19 @@
           <h1>Gym Tracker</h1>
           <p id="welcome-message">Bienvenido</p>
         </div>
-        <button id="logout-btn" class="neutral" type="button">Salir</button>
+        <div class="header-actions">
+          <button id="notification-btn" class="neutral" type="button">
+            Notificaciones
+            <span id="notification-count" class="notification-count">0</span>
+          </button>
+          <button id="logout-btn" class="neutral" type="button">Salir</button>
+        </div>
       </header>
+
+      <section id="notification-panel" class="notification-panel hidden" aria-label="Centro de notificaciones">
+        <h2>Notificaciones</h2>
+        <ul id="notification-list" class="notification-list"></ul>
+      </section>
 
       <nav class="app-nav" aria-label="Secciones">
         <button class="nav-tab active" type="button" data-view="home">Inicio</button>
@@ -88,6 +99,16 @@
           <section class="card feed-card">
             <h2>Inicio inteligente</h2>
             <p class="section-intro">Resumen util de tu progreso y actividad de la comunidad.</p>
+            <section class="home-highlights">
+              <div class="home-topic-tabs" id="home-topic-tabs">
+                <button type="button" class="topic-tab active" data-topic="logros">Logros</button>
+                <button type="button" class="topic-tab" data-topic="comida">Comida</button>
+                <button type="button" class="topic-tab" data-topic="recuperacion">Recuperacion</button>
+              </div>
+              <div id="home-spotlight-list" class="home-spotlight-list"></div>
+              <div id="home-achievements" class="home-achievements"></div>
+            </section>
+            <h3 class="home-subtitle">Actividad</h3>
             <div id="feed-list" class="feed-list"></div>
             <div class="form-actions">
               <button id="load-more-trends" type="button">Cargar mas actividad</button>
@@ -320,8 +341,10 @@
         </section>
 
         <section class="card">
-          <h2>Records por ejercicio (1 serie)</h2>
-          <ul id="records-list"></ul>
+          <h2>Resumen semanal agrupado</h2>
+          <p class="section-intro">Agrupado por lo que entrenaste para evitar listas largas.</p>
+          <div id="ai-coach-summary" class="daily-insight">Sin datos semanales para analizar.</div>
+          <ul id="grouped-stats-list" class="grouped-stats-list"></ul>
         </section>
       </section>
 
@@ -371,6 +394,11 @@
             </form>
             <div class="form-actions">
               <button id="save-profile" type="button">Guardar perfil</button>
+            </div>
+            <div class="backup-actions">
+              <button id="export-backup" type="button" class="neutral">Descargar respaldo</button>
+              <button id="import-backup" type="button" class="neutral">Restaurar respaldo</button>
+              <input id="import-backup-file" type="file" accept="application/json" class="hidden" />
             </div>
             <p id="profile-message" class="muted-message"></p>
           </section>
