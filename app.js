@@ -92,14 +92,16 @@ let entries = [];
 let favorites = [];
 let selectedGroup = "";
 let authMode = "login";
-let trendsVisibleCount = 18;
-const trendsPool = buildTrendPool();
+let feedPage = 1;
+const FEED_PAGE_SIZE = 10;
 
 const WORKOUT_CATALOG = {
   pierna: ["Sentadilla", "Prensa", "Peso muerto rumano", "Zancadas", "Curl femoral"],
   pecho: ["Press banca", "Press inclinado", "Aperturas", "Cruce en polea"],
   espalda: ["Dominadas", "Jalon al pecho", "Remo con barra", "Face pull"],
   hombro: ["Press militar", "Elevaciones laterales", "Pajaro", "Encogimientos"],
+  gemelo: ["Elevacion de talones de pie", "Elevacion de talones sentado", "Donkey calf raise", "Prensa para gemelo"],
+  gluteo: ["Hip thrust", "Patada de gluteo en polea", "Sentadilla sumo", "Puente de gluteo"],
 };
 
 seedAdmin();
@@ -219,6 +221,7 @@ function showApp() {
   appRoot?.classList.remove("hidden");
   if (welcomeMessage) welcomeMessage.textContent = `Bienvenido ${getAuthName()}`;
   adminTab?.classList.toggle("hidden", !isAdmin());
+  feedPage = 1;
   switchView("home");
 }
 
@@ -228,21 +231,102 @@ function switchView(viewName) {
   appViews.forEach((view) => view.classList.toggle("hidden", view.id !== `view-${viewName}`));
 }
 
-function renderTrends() {
+function renderHomeFeed() {
   if (!feedList) return;
+  const items = buildHomeFeedItems();
+  const visible = items.slice(0, feedPage * FEED_PAGE_SIZE);
+
   feedList.innerHTML = "";
-  trendsPool.slice(0, trendsVisibleCount).forEach((item) => {
+  visible.forEach((item) => {
     const card = document.createElement("article");
     card.className = "post-card";
-    card.innerHTML = `<header><strong>@${escapeHtml(item.user)}</strong><small>${formatDateTime(item.date)}</small></header><p>${escapeHtml(item.text)}</p>`;
+    card.innerHTML = `<header><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(
+      item.meta
+    )}</small></header><p>${escapeHtml(item.text)}</p>`;
     feedList.appendChild(card);
   });
-  loadMoreTrendsButton?.classList.toggle("hidden", trendsVisibleCount >= trendsPool.length);
+
+  loadMoreTrendsButton?.classList.toggle("hidden", visible.length >= items.length);
 }
 
 function onLoadMoreTrends() {
-  trendsVisibleCount = Math.min(trendsPool.length, trendsVisibleCount + 15);
-  renderTrends();
+  feedPage += 1;
+  renderHomeFeed();
+}
+
+function buildHomeFeedItems() {
+  const items = [];
+  const now = new Date();
+  const allEntries = Object.values(entriesByUser).flatMap((list) =>
+    Array.isArray(list) ? list : []
+  );
+
+  items.push(buildDailyChallenge(now));
+  items.push(buildWeeklySummary());
+  items.push(...buildPopularExerciseCards(allEntries));
+
+  const recentPosts = posts
+    .slice()
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .map((post) => ({
+      title: `@${post.user}`,
+      meta: formatDateTime(post.date),
+      text: post.text,
+    }));
+
+  return [...items, ...recentPosts];
+}
+
+function buildDailyChallenge(date) {
+  const challenges = [
+    "Reto del dia: 4 series de plancha de 45 segundos.",
+    "Reto del dia: termina 8,000 pasos y 2L de agua.",
+    "Reto del dia: agrega 2 series de movilidad de cadera.",
+    "Reto del dia: 3 series de dominadas asistidas o jalon controlado.",
+    "Reto del dia: 15 minutos de cardio suave post entrenamiento.",
+  ];
+  const dayIndex = Math.floor(date.getTime() / 86400000) % challenges.length;
+  return {
+    title: "Reto diario",
+    meta: date.toLocaleDateString(),
+    text: challenges[dayIndex],
+  };
+}
+
+function buildWeeklySummary() {
+  const weekEntries = entries.filter((entry) => daysAgo(entry.date) <= 7);
+  const weekVolume = weekEntries.reduce((acc, entry) => acc + calculateVolume(entry), 0);
+  const uniqueDays = new Set(weekEntries.map((entry) => entry.date)).size;
+  return {
+    title: "Tu semana",
+    meta: `${uniqueDays} dias activos`,
+    text: `Llevas ${weekEntries.length} ejercicios y ${weekVolume.toFixed(
+      1
+    )} kg de volumen en 7 dias.`,
+  };
+}
+
+function buildPopularExerciseCards(allEntries) {
+  const counter = new Map();
+  allEntries.forEach((entry) => {
+    const key = entry.exercise.trim();
+    counter.set(key, (counter.get(key) || 0) + 1);
+  });
+
+  return [...counter.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([exercise, count], index) => ({
+      title: `Top ${index + 1}: ${exercise}`,
+      meta: "Comunidad",
+      text: `Aparece en ${count} registros. Excelente opcion para progresion.`,
+    }));
+}
+
+function daysAgo(dateValue) {
+  const today = new Date();
+  const then = new Date(dateValue);
+  return Math.floor((today - then) / (1000 * 60 * 60 * 24));
 }
 function onCreatePost(event) {
   event.preventDefault();
@@ -604,7 +688,7 @@ function hydrateUserData() {
 }
 
 function render() {
-  renderTrends();
+  renderHomeFeed();
   renderCommunityUsers();
   renderMyPosts();
   renderWorkoutRows();
@@ -619,17 +703,6 @@ function seedAdmin() {
   if (users.some((u) => u.username.toLowerCase() === "admin")) return;
   users.push({ username: "admin", password: "12345", provider: "local" });
   write(KEYS.users, users);
-}
-
-function buildTrendPool() {
-  const bots = ["fitpulse", "gymdaily", "strengthlab", "coachnova", "leanwave", "hypertrophyhq", "movemotion", "fitinside"];
-  const topics = ["Rutina de gluteo en 20 minutos", "Top 5 desayunos altos en proteina", "Errores comunes en sentadilla", "Movilidad de hombro para press", "Como progresar en dominadas", "Mini circuito HIIT", "Recuperacion activa post pierna", "Guia de volumen semanal"];
-  const tags = ["#fitness", "#gym", "#muscle", "#hypertrophy", "#strength", "#wellness", "#nutrition"];
-  const out = [];
-  for (let i = 0; i < 220; i += 1) {
-    out.push({ user: bots[i % bots.length], text: `${topics[i % topics.length]}. Consejo #${(i % 12) + 1} ${tags[i % tags.length]} ${tags[(i + 3) % tags.length]}`, date: new Date(Date.now() - i * 1000 * 60 * 23).toISOString() });
-  }
-  return out;
 }
 
 function loadProfileForCurrentUser() {
