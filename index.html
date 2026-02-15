@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gym Tracker</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>Gym Tracker</h1>
+        <p>Control simple de tus ejercicios y progreso.</p>
+      </header>
+
+      <section class="card">
+        <h2>Registrar ejercicio</h2>
+        <form id="entry-form">
+          <div class="grid">
+            <label>
+              Fecha
+              <input type="date" id="date" required />
+            </label>
+            <label>
+              Ejercicio
+              <input type="text" id="exercise" placeholder="Ej: Sentadilla" required />
+            </label>
+            <label>
+              Series
+              <input type="number" id="sets" min="1" required />
+            </label>
+            <label>
+              Reps
+              <input type="number" id="reps" min="1" required />
+            </label>
+            <label>
+              Peso (kg)
+              <input type="number" id="weight" min="0" step="0.5" required />
+            </label>
+            <label>
+              Notas
+              <input type="text" id="notes" placeholder="Opcional" />
+            </label>
+          </div>
+          <button type="submit">Guardar</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Resumen</h2>
+        <div class="stats">
+          <article>
+            <h3>Entradas</h3>
+            <p id="total-entries">0</p>
+          </article>
+          <article>
+            <h3>Volumen total (kg)</h3>
+            <p id="total-volume">0</p>
+          </article>
+          <article>
+            <h3>Último entrenamiento</h3>
+            <p id="last-workout">-</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Historial</h2>
+        <div class="toolbar">
+          <input type="text" id="search" placeholder="Filtrar por ejercicio..." />
+          <button id="clear-all" class="danger">Borrar todo</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Ejercicio</th>
+                <th>Series</th>
+                <th>Reps</th>
+                <th>Peso</th>
+                <th>Volumen</th>
+                <th>Notas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="entries-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Récords por ejercicio (1 serie)</h2>
+        <ul id="records-list"></ul>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
