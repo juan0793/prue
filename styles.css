@@ -520,6 +520,49 @@ h2 {
   margin: 0;
 }
 
+.feed-open-btn {
+  margin-top: 0.55rem;
+}
+
+.feed-detail-card h2 {
+  margin-bottom: 0.2rem;
+}
+
+.feed-detail-card > p {
+  margin: 0 0 0.7rem;
+}
+
+.feed-detail-insight {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.62rem 0.68rem;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.feed-detail-insight h3 {
+  margin: 0.25rem 0 0;
+  font-size: 0.86rem;
+}
+
+.feed-detail-insight p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.feed-detail-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.feed-detail-actions button {
+  margin-top: 0;
+}
+
 .msg-icon {
   margin-top: 0;
   padding: 0.18rem 0.45rem;

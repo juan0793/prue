@@ -43,6 +43,14 @@ const loadMoreTrendsButton = q("#load-more-trends");
 const homeSpotlightList = q("#home-spotlight-list");
 const homeAchievements = q("#home-achievements");
 const homeTopicButtons = qa("#home-topic-tabs button[data-topic]");
+const feedDetailPanel = q("#feed-detail-panel");
+const feedDetailTitleEl = q("#feed-detail-title");
+const feedDetailMetaEl = q("#feed-detail-meta");
+const feedDetailTextEl = q("#feed-detail-text");
+const feedDetailWhyEl = q("#feed-detail-why");
+const feedDetailActionEl = q("#feed-detail-action");
+const feedDetailSaveButton = q("#feed-detail-save");
+const feedDetailUseButton = q("#feed-detail-use");
 const communityUserList = q("#community-user-list");
 const chatPanel = q("#chat-panel");
 const chatWithEl = q("#chat-with");
@@ -141,6 +149,8 @@ let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1
 let autoSyncTimer = null;
 let lastUnreadTotal = 0;
 let messageAlertTimer = null;
+let currentFeedItems = [];
+let selectedFeedItem = null;
 const FEED_PAGE_SIZE = 10;
 
 const WORKOUT_CATALOG = {
@@ -182,6 +192,8 @@ function init() {
       renderHomeHighlights();
     });
   });
+  feedDetailSaveButton?.addEventListener("click", onSaveFeedInsight);
+  feedDetailUseButton?.addEventListener("click", onUseFeedInsight);
   chatCloseButton?.addEventListener("click", closeChatPanel);
   chatForm?.addEventListener("submit", onChatSubmit);
 
@@ -316,20 +328,32 @@ function switchView(viewName) {
 function renderHomeFeed() {
   if (!feedList) return;
   renderHomeHighlights();
-  const items = buildHomeFeedItems();
+  const items = buildHomeFeedItems().map((item) => enrichFeedItem(item));
   const visible = items.slice(0, feedPage * FEED_PAGE_SIZE);
+  currentFeedItems = visible;
 
   feedList.innerHTML = "";
-  visible.forEach((item) => {
+  visible.forEach((item, index) => {
     const card = document.createElement("article");
     card.className = "post-card";
     card.innerHTML = `<header><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(
       item.meta
-    )}</small></header><p>${escapeHtml(item.text)}</p>`;
+    )}</small></header><p>${escapeHtml(item.text)}</p><button type="button" class="inline-button feed-open-btn" data-feed-index="${index}">Ver detalle</button>`;
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      openFeedDetail(index);
+    });
     feedList.appendChild(card);
   });
+  qa(".feed-open-btn").forEach((button) =>
+    button.addEventListener("click", () => openFeedDetail(Number(button.dataset.feedIndex || 0)))
+  );
 
   loadMoreTrendsButton?.classList.toggle("hidden", visible.length >= items.length);
+  if (selectedFeedItem) {
+    const idx = currentFeedItems.findIndex((item) => item.id === selectedFeedItem.id);
+    if (idx >= 0) openFeedDetail(idx);
+  }
 }
 
 function renderHomeHighlights() {
@@ -495,6 +519,83 @@ function onLoadMoreTrends() {
   renderHomeFeed();
 }
 
+function openFeedDetail(index) {
+  const item = currentFeedItems[index];
+  if (!item || !feedDetailPanel) return;
+  selectedFeedItem = item;
+  feedDetailPanel.classList.remove("hidden");
+  if (feedDetailTitleEl) feedDetailTitleEl.textContent = item.title;
+  if (feedDetailMetaEl) feedDetailMetaEl.textContent = item.meta;
+  if (feedDetailTextEl) feedDetailTextEl.textContent = item.text;
+  if (feedDetailWhyEl) feedDetailWhyEl.textContent = item.why;
+  if (feedDetailActionEl) feedDetailActionEl.textContent = item.action;
+}
+
+function onSaveFeedInsight() {
+  if (!selectedFeedItem) return;
+  const item = selectedFeedItem;
+  if (!isSpotlightSaved(item, "insight")) {
+    spotlightFavorites.unshift({
+      id: crypto.randomUUID(),
+      title: item.title,
+      text: item.text,
+      badge: "Insight",
+      image: item.image || "",
+      topic: "insight",
+      savedAt: new Date().toISOString(),
+    });
+    spotlightFavoritesByUser[getAuthName()] = spotlightFavorites;
+    write(KEYS.spotlightFavorites, spotlightFavoritesByUser);
+    renderProfileSavedContent();
+  }
+}
+
+function onUseFeedInsight() {
+  if (!selectedFeedItem) return;
+  switchView("workout");
+  const notesInput = q("#notes");
+  if (notesInput) notesInput.value = `Plan sugerido: ${selectedFeedItem.action}`;
+  if (selectedFeedItem.group) {
+    selectedGroup = selectedFeedItem.group;
+    qa("#muscle-options button[data-group]").forEach((b) => b.classList.toggle("active", b.dataset.group === selectedGroup));
+    renderExerciseMenu();
+    renderRoutineRecommendation();
+    applyWorkoutTheme(selectedGroup);
+  }
+}
+
+function enrichFeedItem(item) {
+  const goal = (profileGoalInput?.value || "").toLowerCase();
+  const hasStrengthGoal = goal.includes("fuerza");
+  const lowerText = `${item.title} ${item.text}`.toLowerCase();
+  const group = detectExerciseGroupFromText(lowerText);
+  const why = item.type === "community-post"
+    ? "Te muestra ideas reales de otros usuarios para mantener motivacion y adherencia."
+    : `Este dato se relaciona con tu objetivo ${goal || "de progreso general"} y tu historial reciente.`;
+  const action = hasStrengthGoal
+    ? "Aplica hoy 1 ejercicio principal en 4-6 reps y registra la carga."
+    : "Aplica hoy 2 ejercicios del grupo foco en 8-12 reps con tecnica controlada.";
+  return {
+    ...item,
+    id: item.id || `${item.title}|${item.meta}|${item.text}`.toLowerCase(),
+    why,
+    action,
+    group,
+  };
+}
+
+function detectExerciseGroupFromText(text) {
+  const key = String(text || "").toLowerCase();
+  if (key.includes("pierna") || key.includes("sentadilla") || key.includes("zancada")) return "pierna";
+  if (key.includes("pecho") || key.includes("press banca")) return "pecho";
+  if (key.includes("espalda") || key.includes("remo") || key.includes("jalon")) return "espalda";
+  if (key.includes("hombro") || key.includes("militar") || key.includes("lateral")) return "hombro";
+  if (key.includes("braz") || key.includes("tricep") || key.includes("bicep") || key.includes("curl")) return "brazos";
+  if (key.includes("gemelo") || key.includes("talones")) return "gemelo";
+  if (key.includes("gluteo") || key.includes("hip thrust")) return "gluteo";
+  return "";
+}
+
 function buildHomeFeedItems() {
   const items = [];
   const now = new Date();
@@ -510,8 +611,10 @@ function buildHomeFeedItems() {
     .slice()
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .map((post) => ({
+      id: post.id,
       title: `@${post.user}`,
       meta: formatDateTime(post.date),
+      type: "community-post",
       text: post.text,
     }));
 
@@ -530,6 +633,7 @@ function buildDailyChallenge(date) {
   return {
     title: "Reto diario",
     meta: date.toLocaleDateString(),
+    type: "challenge",
     text: challenges[dayIndex],
   };
 }
@@ -541,6 +645,7 @@ function buildWeeklySummary() {
   return {
     title: "Tu semana",
     meta: `${uniqueDays} dias activos`,
+    type: "weekly-summary",
     text: `Llevas ${weekEntries.length} ejercicios y ${weekVolume.toFixed(
       1
     )} kg de volumen en 7 dias.`,
@@ -560,6 +665,7 @@ function buildPopularExerciseCards(allEntries) {
     .map(([exercise, count], index) => ({
       title: `Top ${index + 1}: ${exercise}`,
       meta: "Comunidad",
+      type: "popular-exercise",
       text: `Aparece en ${count} registros. Excelente opcion para progresion.`,
     }));
 }
@@ -980,8 +1086,8 @@ function renderProfileSavedContent() {
   spotlightFavorites.forEach((item) => {
     const card = document.createElement("article");
     card.className = "saved-content-card";
-    card.innerHTML = `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" /><div><small>${escapeHtml(
-      item.badge
+    card.innerHTML = `${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" />` : ""}<div><small>${escapeHtml(
+      item.badge || "Guardado"
     )}</small><h4>${escapeHtml(item.title)}</h4><p>${escapeHtml(item.text)}</p><button type="button" class="inline-button" data-remove-saved="${escapeHtml(
       item.id
     )}">Quitar</button></div>`;
