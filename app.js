@@ -105,8 +105,8 @@ function getAuthName() {
 }
 
 function showLogin() {
-  loginView.classList.remove("hidden");
   appRoot.classList.add("hidden");
+  loginView.classList.remove("hidden");
   loginUserInput.focus();
 }
 
