@@ -594,6 +594,16 @@ h2 {
   border-left: 4px solid #f59e0b;
 }
 
+.insights-card .stats article {
+  min-height: 112px;
+}
+
+.insights-card .stats p {
+  font-size: 0.93rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
 .toolbar {
   display: flex;
   gap: 0.75rem;
@@ -621,6 +631,176 @@ h2 {
 .period-picker {
   max-width: 260px;
   margin-bottom: 0.95rem;
+}
+
+.daily-analysis-card {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 42%),
+    var(--card);
+}
+
+.mini-calendar {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.7rem;
+  margin-bottom: 0.85rem;
+}
+
+.mini-calendar-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.mini-calendar-header strong {
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.mini-calendar-header button {
+  margin-top: 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+}
+
+.mini-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-bottom: 0.35rem;
+}
+
+.mini-calendar-weekdays span {
+  text-align: center;
+}
+
+.mini-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.calendar-filler {
+  height: 34px;
+}
+
+.calendar-day {
+  margin-top: 0;
+  height: 34px;
+  border-radius: 9px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  padding: 0;
+  font-size: 0.84rem;
+}
+
+.calendar-day.has-workout {
+  border-color: rgba(34, 197, 94, 0.52);
+}
+
+.calendar-day.level-1 {
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.calendar-day.level-2 {
+  background: rgba(34, 197, 94, 0.28);
+}
+
+.calendar-day.level-3 {
+  background: rgba(34, 197, 94, 0.38);
+}
+
+.calendar-day.level-4 {
+  background: rgba(21, 128, 61, 0.55);
+  color: #052e16;
+}
+
+.calendar-day.active {
+  color: #fff;
+  border-color: rgba(29, 78, 216, 0.85);
+  background: linear-gradient(120deg, #0ea5e9, #1d4ed8);
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.28);
+}
+
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  color: var(--muted);
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  display: inline-block;
+}
+
+.legend-dot.level-1 {
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.legend-dot.level-2 {
+  background: rgba(34, 197, 94, 0.28);
+}
+
+.legend-dot.level-3 {
+  background: rgba(34, 197, 94, 0.38);
+}
+
+.legend-dot.level-4 {
+  background: rgba(21, 128, 61, 0.55);
+}
+
+.daily-summary {
+  border: 1px solid rgba(15, 23, 42, 0.11);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.7rem 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.daily-exercise-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.52rem;
+}
+
+.daily-exercise-list li {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.62rem 0.7rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.daily-exercise-list span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.daily-insight {
+  margin-top: 0.8rem;
+  border-left: 4px solid #22c55e;
+  border-radius: 10px;
+  background: rgba(236, 253, 245, 0.8);
+  padding: 0.75rem 0.82rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .table-wrapper {

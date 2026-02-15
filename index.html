@@ -160,6 +160,29 @@
           </div>
         </section>
 
+        <section class="card insights-card">
+          <h2>Lectura de tus cargas</h2>
+          <p class="section-intro">Convertimos tus pesos en informacion accionable para progresar.</p>
+          <div class="stats">
+            <article>
+              <h3>Resumen</h3>
+              <p id="insight-summary">Sin datos aun.</p>
+            </article>
+            <article>
+              <h3>Intensidad</h3>
+              <p id="insight-load">-</p>
+            </article>
+            <article>
+              <h3>Progreso</h3>
+              <p id="insight-progress">-</p>
+            </article>
+            <article>
+              <h3>Proxima carga sugerida</h3>
+              <p id="insight-next">-</p>
+            </article>
+          </div>
+        </section>
+
         <section class="card">
           <h2>Registrar ejercicio</h2>
           <p class="section-intro">Carga tus series con una vista mas limpia y organizada.</p>
@@ -211,6 +234,7 @@
                   <th>Series</th>
                   <th>Reps</th>
                   <th>Peso</th>
+                  <th>1RM est.</th>
                   <th>Volumen</th>
                   <th>Notas</th>
                   <th></th>
@@ -262,6 +286,37 @@
               <p id="period-year">0 ejercicios | 0 kg</p>
             </article>
           </div>
+        </section>
+
+        <section class="card daily-analysis-card">
+          <h2>Analisis por dia</h2>
+          <p class="section-intro">Selecciona una fecha y revisa tus ejercicios con una lectura clara y accionable.</p>
+          <div class="mini-calendar">
+            <div class="mini-calendar-header">
+              <button id="calendar-prev" type="button" class="neutral">Mes anterior</button>
+              <strong id="calendar-month-label">-</strong>
+              <button id="calendar-next" type="button" class="neutral">Mes siguiente</button>
+            </div>
+            <div class="mini-calendar-weekdays">
+              <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+            <div id="calendar-grid" class="mini-calendar-grid"></div>
+            <div class="calendar-legend" aria-label="Leyenda de intensidad">
+              <small>Menor carga</small>
+              <span class="legend-dot level-1"></span>
+              <span class="legend-dot level-2"></span>
+              <span class="legend-dot level-3"></span>
+              <span class="legend-dot level-4"></span>
+              <small>Mayor carga</small>
+            </div>
+          </div>
+          <label class="period-picker">
+            Dia de entrenamiento
+            <input type="date" id="daily-date" />
+          </label>
+          <div id="daily-summary" class="daily-summary">Sin datos para la fecha seleccionada.</div>
+          <ul id="daily-exercise-list" class="daily-exercise-list"></ul>
+          <div id="daily-insight" class="daily-insight">Carga un entrenamiento para generar interpretacion inteligente.</div>
         </section>
 
         <section class="card">

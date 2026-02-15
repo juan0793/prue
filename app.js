@@ -61,6 +61,18 @@ const recordsListEl = q("#records-list");
 const periodDayEl = q("#period-day");
 const periodMonthEl = q("#period-month");
 const periodYearEl = q("#period-year");
+const dailyDateInput = q("#daily-date");
+const dailySummaryEl = q("#daily-summary");
+const dailyExerciseListEl = q("#daily-exercise-list");
+const dailyInsightEl = q("#daily-insight");
+const calendarGridEl = q("#calendar-grid");
+const calendarMonthLabelEl = q("#calendar-month-label");
+const calendarPrevButton = q("#calendar-prev");
+const calendarNextButton = q("#calendar-next");
+const insightSummaryEl = q("#insight-summary");
+const insightLoadEl = q("#insight-load");
+const insightProgressEl = q("#insight-progress");
+const insightNextEl = q("#insight-next");
 
 const profileNameInput = q("#profile-name");
 const profileAgeInput = q("#profile-age");
@@ -93,6 +105,7 @@ let favorites = [];
 let selectedGroup = "";
 let authMode = "login";
 let feedPage = 1;
+let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 const FEED_PAGE_SIZE = 10;
 
 const WORKOUT_CATALOG = {
@@ -111,6 +124,7 @@ function init() {
   const today = new Date().toISOString().slice(0, 10);
   if (q("#date")) q("#date").value = today;
   if (periodDateInput) periodDateInput.value = today;
+  if (dailyDateInput) dailyDateInput.value = today;
 
   tabLoginButton?.addEventListener("click", () => setAuthMode("login"));
   tabRegisterButton?.addEventListener("click", () => setAuthMode("register"));
@@ -128,6 +142,9 @@ function init() {
   muscleOptionsEl?.addEventListener("click", onMuscleGroupClick);
   routineStyleSelect?.addEventListener("input", renderRoutineRecommendation);
   periodDateInput?.addEventListener("input", renderPeriodResults);
+  dailyDateInput?.addEventListener("input", renderDailyAnalysis);
+  calendarPrevButton?.addEventListener("click", () => moveCalendarMonth(-1));
+  calendarNextButton?.addEventListener("click", () => moveCalendarMonth(1));
 
   saveProfileButton?.addEventListener("click", onSaveProfile);
   profileRoutineSelect?.addEventListener("input", onProfileRoutineChange);
@@ -323,11 +340,6 @@ function buildPopularExerciseCards(allEntries) {
     }));
 }
 
-function daysAgo(dateValue) {
-  const today = new Date();
-  const then = new Date(dateValue);
-  return Math.floor((today - then) / (1000 * 60 * 60 * 24));
-}
 function onCreatePost(event) {
   event.preventDefault();
   const text = postInput?.value.trim();
@@ -455,7 +467,10 @@ function renderRoutineRecommendation() {
 
   orderedExercises.slice(0, 4).forEach((exercise, index) => {
     const best = bestByExercise.get(exercise.toLowerCase());
-    const progression = best ? ` | ultima marca: ${best.weight}kg x ${best.reps}` : " | primera semana";
+    const next = best ? suggestNextWeight(best, null) : 0;
+    const progression = best
+      ? ` | ultima marca: ${best.weight}kg x ${best.reps} | sugerido: ${next.toFixed(1)}kg`
+      : " | primera semana";
     const li = document.createElement("li");
     li.textContent = `${index + 1}. ${exercise}: ${basePrescription}${progression}`;
     recommendationListEl.appendChild(li);
@@ -595,10 +610,15 @@ function renderWorkoutRows() {
   if (!entriesBody) return;
   const query = (searchInput?.value || "").trim().toLowerCase();
   const data = entries.filter((e) => e.exercise.toLowerCase().includes(query));
-  entriesBody.innerHTML = data.length ? "" : "<tr><td colspan='8'>Sin registros aun.</td></tr>";
+  entriesBody.innerHTML = data.length ? "" : "<tr><td colspan='9'>Sin registros aun.</td></tr>";
   data.forEach((e) => {
+    const oneRm = estimateOneRepMax(e);
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${e.date}</td><td>${escapeHtml(e.exercise)}</td><td>${e.sets}</td><td>${e.reps}</td><td>${e.weight}</td><td>${calculateVolume(e).toFixed(1)}</td><td>${escapeHtml(e.notes || "-")}</td><td><button type='button' class='inline-button' data-id='${e.id}'>Eliminar</button></td>`;
+    tr.innerHTML = `<td>${e.date}</td><td>${escapeHtml(e.exercise)}</td><td>${e.sets}</td><td>${e.reps}</td><td>${e.weight}</td><td>${oneRm.toFixed(
+      1
+    )}</td><td>${calculateVolume(e).toFixed(1)}</td><td>${escapeHtml(
+      e.notes || "-"
+    )}</td><td><button type='button' class='inline-button' data-id='${e.id}'>Eliminar</button></td>`;
     entriesBody.appendChild(tr);
   });
   qa("#entries-body button[data-id]").forEach((b) => b.addEventListener("click", () => onDelete(b.dataset.id)));
@@ -611,6 +631,39 @@ function renderStats() {
   totalEntriesEl.textContent = quickTotalEntriesEl.textContent = String(totalEntries);
   totalVolumeEl.textContent = quickTotalVolumeEl.textContent = totalVolume.toFixed(1);
   lastWorkoutEl.textContent = quickLastWorkoutEl.textContent = last;
+}
+
+function renderWeightInsights() {
+  if (!insightSummaryEl || !insightLoadEl || !insightProgressEl || !insightNextEl) return;
+  if (!entries.length) {
+    insightSummaryEl.textContent = "Sin datos aun.";
+    insightLoadEl.textContent = "-";
+    insightProgressEl.textContent = "-";
+    insightNextEl.textContent = "-";
+    return;
+  }
+
+  const sorted = entries.slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  const last = sorted[0];
+  const weekEntries = sorted.filter((entry) => daysAgo(entry.date) <= 7);
+  const weekVolume = weekEntries.reduce((acc, entry) => acc + calculateVolume(entry), 0);
+  const avgLoad = weekEntries.length
+    ? weekEntries.reduce((acc, entry) => acc + Number(entry.weight || 0), 0) / weekEntries.length
+    : Number(last.weight || 0);
+
+  const prev = sorted.find((entry) => entry.id !== last.id && entry.exercise.toLowerCase() === last.exercise.toLowerCase());
+  const deltaWeight = prev ? Number(last.weight || 0) - Number(prev.weight || 0) : 0;
+  const deltaPct = prev && Number(prev.weight || 0) > 0 ? (deltaWeight / Number(prev.weight)) * 100 : 0;
+
+  const oneRm = estimateOneRepMax(last);
+  const nextWeight = suggestNextWeight(last, prev);
+
+  insightSummaryEl.textContent = `${weekEntries.length} ejercicios esta semana | ${weekVolume.toFixed(0)} kg de volumen`;
+  insightLoadEl.textContent = `${avgLoad.toFixed(1)} kg promedio por ejercicio | 1RM est. ${oneRm.toFixed(1)} kg`;
+  insightProgressEl.textContent = prev
+    ? `${capitalize(last.exercise)}: ${formatSigned(deltaWeight.toFixed(1))} kg (${formatSigned(deltaPct.toFixed(1))}%) vs sesion anterior`
+    : `Primer registro de ${capitalize(last.exercise)}.`;
+  insightNextEl.textContent = `${last.exercise}: prueba ${nextWeight.toFixed(1)} kg manteniendo tecnica limpia`;
 }
 
 function renderRecords() {
@@ -636,6 +689,118 @@ function renderPeriodResults() {
   periodDayEl.textContent = formatPeriodResult(day);
   periodMonthEl.textContent = formatPeriodResult(month);
   periodYearEl.textContent = formatPeriodResult(year);
+}
+
+function renderDailyAnalysis() {
+  if (!dailyDateInput || !dailySummaryEl || !dailyExerciseListEl || !dailyInsightEl) return;
+  if (!entries.length) {
+    dailySummaryEl.textContent = "Sin entrenamientos registrados.";
+    dailyExerciseListEl.innerHTML = "<li>No hay ejercicios para mostrar.</li>";
+    dailyInsightEl.textContent = "Carga un entrenamiento para generar interpretacion inteligente.";
+    return;
+  }
+
+  if (!dailyDateInput.value) dailyDateInput.value = entries[0]?.date || new Date().toISOString().slice(0, 10);
+  const selectedDate = dailyDateInput.value;
+  const dayEntries = entries.filter((e) => e.date === selectedDate);
+
+  if (!dayEntries.length) {
+    dailySummaryEl.textContent = `No registraste ejercicios el ${selectedDate}.`;
+    dailyExerciseListEl.innerHTML = "<li>Prueba otra fecha para ver el detalle diario.</li>";
+    dailyInsightEl.textContent = "Sin sesion para analizar en ese dia.";
+    return;
+  }
+
+  const sessionVolume = dayEntries.reduce((acc, e) => acc + calculateVolume(e), 0);
+  const totalSets = dayEntries.reduce((acc, e) => acc + Number(e.sets || 0), 0);
+  const avgWeight = dayEntries.reduce((acc, e) => acc + Number(e.weight || 0), 0) / dayEntries.length;
+  const avgReps = dayEntries.reduce((acc, e) => acc + Number(e.reps || 0), 0) / dayEntries.length;
+  const uniqueExercises = new Set(dayEntries.map((e) => e.exercise.toLowerCase())).size;
+  const density = totalSets > 0 ? sessionVolume / totalSets : 0;
+
+  dailySummaryEl.textContent = `${selectedDate} | ${dayEntries.length} ejercicios | ${totalSets} series | ${sessionVolume.toFixed(0)} kg de volumen`;
+
+  dailyExerciseListEl.innerHTML = "";
+  dayEntries.forEach((entry) => {
+    const li = document.createElement("li");
+    const oneRm = estimateOneRepMax(entry);
+    li.innerHTML = `<strong>${escapeHtml(entry.exercise)}</strong><span>${entry.sets}x${entry.reps} con ${entry.weight} kg | 1RM est. ${oneRm.toFixed(1)} kg</span>`;
+    dailyExerciseListEl.appendChild(li);
+  });
+
+  const intensityZone = density < 180 ? "Ligera" : density < 320 ? "Moderada" : "Alta";
+  const adaptation = avgReps >= 10 && avgWeight > 0 ? "hipertrofia tecnica" : avgReps <= 6 ? "fuerza neural" : "mixta";
+  const nextAction =
+    intensityZone === "Ligera"
+      ? "Puedes subir 2.5 kg en tu ejercicio principal."
+      : intensityZone === "Alta"
+      ? "Mantener carga y priorizar recuperacion 24-48h."
+      : "Mantener esquema y mejorar tecnica o rango.";
+
+  dailyInsightEl.textContent = `Lectura simple: intensidad ${intensityZone}, densidad ${density.toFixed(
+    0
+  )} kg/serie, foco ${adaptation}. Trabajaste ${uniqueExercises} ejercicios con ${avgWeight.toFixed(
+    1
+  )} kg promedio y ${avgReps.toFixed(1)} reps promedio. ${nextAction}`;
+}
+
+function renderMiniCalendar() {
+  if (!calendarGridEl || !calendarMonthLabelEl) return;
+  const selected = dailyDateInput?.value || "";
+  const monthStart = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
+  const monthEndDay = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 0).getDate();
+  const mondayIndex = (monthStart.getDay() + 6) % 7;
+  const monthKey = `${calendarCursor.getFullYear()}-${String(calendarCursor.getMonth() + 1).padStart(2, "0")}`;
+  const dayVolumeMap = new Map();
+  const dayCountMap = new Map();
+
+  entries
+    .filter((entry) => entry.date.startsWith(monthKey))
+    .forEach((entry) => {
+      dayVolumeMap.set(entry.date, (dayVolumeMap.get(entry.date) || 0) + calculateVolume(entry));
+      dayCountMap.set(entry.date, (dayCountMap.get(entry.date) || 0) + 1);
+    });
+
+  const maxVolume = Math.max(0, ...dayVolumeMap.values());
+
+  calendarMonthLabelEl.textContent = monthStart.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+  calendarGridEl.innerHTML = "";
+
+  for (let i = 0; i < mondayIndex; i += 1) {
+    const filler = document.createElement("span");
+    filler.className = "calendar-filler";
+    filler.setAttribute("aria-hidden", "true");
+    calendarGridEl.appendChild(filler);
+  }
+
+  for (let day = 1; day <= monthEndDay; day += 1) {
+    const iso = toIsoDate(new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), day));
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    const volume = dayVolumeMap.get(iso) || 0;
+    const count = dayCountMap.get(iso) || 0;
+    if (volume > 0) {
+      button.classList.add("has-workout");
+      const ratio = maxVolume > 0 ? volume / maxVolume : 0;
+      const level = ratio < 0.25 ? 1 : ratio < 0.5 ? 2 : ratio < 0.75 ? 3 : 4;
+      button.classList.add(`level-${level}`);
+    }
+    if (selected === iso) button.classList.add("active");
+    button.textContent = String(day);
+    button.title = volume > 0 ? `${iso} | ${count} ejercicios | ${volume.toFixed(0)} kg` : iso;
+    button.addEventListener("click", () => {
+      if (dailyDateInput) dailyDateInput.value = iso;
+      renderDailyAnalysis();
+      renderMiniCalendar();
+    });
+    calendarGridEl.appendChild(button);
+  }
+}
+
+function moveCalendarMonth(offset) {
+  calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + offset, 1);
+  renderMiniCalendar();
 }
 
 function renderAdmin() {
@@ -684,6 +849,11 @@ function hydrateUserData() {
   profileRoutineSelect.value = profile.routine || "hypertrophy";
   routineStyleSelect.value = profile.routine || "hypertrophy";
   applyProfileAvatar(profile.avatar || "");
+  if (dailyDateInput && entries.length) dailyDateInput.value = entries[0].date;
+  if (dailyDateInput?.value) {
+    const selected = new Date(dailyDateInput.value);
+    if (!Number.isNaN(selected.getTime())) calendarCursor = new Date(selected.getFullYear(), selected.getMonth(), 1);
+  }
   renderFavorites();
 }
 
@@ -693,8 +863,11 @@ function render() {
   renderMyPosts();
   renderWorkoutRows();
   renderStats();
+  renderWeightInsights();
   renderRecords();
   renderPeriodResults();
+  renderDailyAnalysis();
+  renderMiniCalendar();
   renderRoutineRecommendation();
   renderAdmin();
 }
@@ -714,8 +887,32 @@ function applyProfileAvatar(value) {
   if (profileAvatar) profileAvatar.src = value || fallback;
 }
 
+function estimateOneRepMax(entry) {
+  const weight = Number(entry.weight || 0);
+  const reps = Number(entry.reps || 0);
+  if (weight <= 0 || reps <= 0) return 0;
+  return weight * (1 + reps / 30);
+}
+
+function suggestNextWeight(last, previous) {
+  const current = Number(last.weight || 0);
+  if (current <= 0) return 0;
+  if (!previous) return current + 2.5;
+  if (last.reps >= previous.reps && current >= Number(previous.weight || 0)) return current + 2.5;
+  return current;
+}
+
+function formatSigned(value) {
+  const numeric = Number(value);
+  if (Number.isNaN(numeric) || numeric === 0) return "0";
+  return numeric > 0 ? `+${numeric}` : `${numeric}`;
+}
+
 function formatPeriodResult(list) { return `${list.length} ejercicios | ${list.reduce((acc, e) => acc + calculateVolume(e), 0).toFixed(1)} kg`; }
 function calculateVolume(e) { return e.sets * e.reps * e.weight; }
+function toIsoDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
 function getValue(id) { return q(`#${id}`).value.trim(); }
 function formatDateTime(v) { try { return new Date(v).toLocaleString(); } catch { return v; } }
 function capitalize(v) { return v.charAt(0).toUpperCase() + v.slice(1); }
