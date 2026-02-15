@@ -1,4 +1,15 @@
-const STORAGE_KEY = "gym-tracker-entries-v1";
+﻿const STORAGE_KEY = "gym-tracker-entries-v1";
+const AUTH_KEY = "gym-tracker-auth-v1";
+const AUTH_USER = "admin";
+const AUTH_PASS = "12345";
+
+const loginView = document.querySelector("#login-view");
+const appRoot = document.querySelector("#app-root");
+const loginForm = document.querySelector("#login-form");
+const loginUserInput = document.querySelector("#login-user");
+const loginPassInput = document.querySelector("#login-pass");
+const loginError = document.querySelector("#login-error");
+const logoutButton = document.querySelector("#logout-btn");
 
 const form = document.querySelector("#entry-form");
 const entriesBody = document.querySelector("#entries-body");
@@ -18,11 +29,57 @@ function init() {
   const today = new Date().toISOString().slice(0, 10);
   document.querySelector("#date").value = today;
 
+  loginForm.addEventListener("submit", onLoginSubmit);
+  logoutButton.addEventListener("click", onLogout);
+
   form.addEventListener("submit", onSubmit);
   searchInput.addEventListener("input", render);
   clearAllButton.addEventListener("click", onClearAll);
 
-  render();
+  if (isAuthenticated()) {
+    showApp();
+    render();
+  } else {
+    showLogin();
+  }
+}
+
+function onLoginSubmit(event) {
+  event.preventDefault();
+
+  const user = loginUserInput.value.trim();
+  const pass = loginPassInput.value.trim();
+
+  if (user === AUTH_USER && pass === AUTH_PASS) {
+    sessionStorage.setItem(AUTH_KEY, "1");
+    loginForm.reset();
+    loginError.textContent = "";
+    showApp();
+    render();
+    return;
+  }
+
+  loginError.textContent = "Usuario o contrasena incorrectos.";
+}
+
+function onLogout() {
+  sessionStorage.removeItem(AUTH_KEY);
+  showLogin();
+}
+
+function isAuthenticated() {
+  return sessionStorage.getItem(AUTH_KEY) === "1";
+}
+
+function showLogin() {
+  loginView.classList.remove("hidden");
+  appRoot.classList.add("hidden");
+  loginUserInput.focus();
+}
+
+function showApp() {
+  loginView.classList.add("hidden");
+  appRoot.classList.remove("hidden");
 }
 
 function onSubmit(event) {
@@ -53,7 +110,7 @@ function onDelete(id) {
 
 function onClearAll() {
   if (!entries.length) return;
-  const shouldDelete = window.confirm("¿Borrar todo el historial?");
+  const shouldDelete = window.confirm("Borrar todo el historial?");
   if (!shouldDelete) return;
 
   entries = [];
@@ -76,7 +133,7 @@ function renderRows(data) {
   entriesBody.innerHTML = "";
 
   if (!data.length) {
-    entriesBody.innerHTML = `<tr><td colspan="8">Sin registros aún.</td></tr>`;
+    entriesBody.innerHTML = `<tr><td colspan="8">Sin registros aun.</td></tr>`;
     return;
   }
 

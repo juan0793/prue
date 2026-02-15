@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
@@ -7,10 +7,45 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app">
-      <header>
+    <div class="watermark" aria-hidden="true">
+      <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round">
+          <path d="M70 120H170" />
+          <rect x="32" y="86" width="20" height="68" rx="8" />
+          <rect x="52" y="96" width="16" height="48" rx="6" />
+          <rect x="172" y="96" width="16" height="48" rx="6" />
+          <rect x="188" y="86" width="20" height="68" rx="8" />
+        </g>
+      </svg>
+    </div>
+
+    <main id="login-view" class="login-view">
+      <section class="login-card">
         <h1>Gym Tracker</h1>
-        <p>Control simple de tus ejercicios y progreso.</p>
+        <p>Accede con tu usuario para registrar tus ejercicios.</p>
+        <form id="login-form" class="login-form">
+          <label>
+            Usuario
+            <input type="text" id="login-user" required />
+          </label>
+          <label>
+            Contrasena
+            <input type="password" id="login-pass" required />
+          </label>
+          <button type="submit">Entrar</button>
+        </form>
+        <small class="hint">Usuario: admin | Pass: 12345</small>
+        <p id="login-error" class="login-error" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <main id="app-root" class="app hidden">
+      <header class="app-header">
+        <div>
+          <h1>Gym Tracker</h1>
+          <p>Control simple de tus ejercicios y progreso.</p>
+        </div>
+        <button id="logout-btn" class="neutral" type="button">Salir</button>
       </header>
 
       <section class="card">
@@ -58,7 +93,7 @@
             <p id="total-volume">0</p>
           </article>
           <article>
-            <h3>Último entrenamiento</h3>
+            <h3>Ultimo entrenamiento</h3>
             <p id="last-workout">-</p>
           </article>
         </div>
@@ -68,7 +103,7 @@
         <h2>Historial</h2>
         <div class="toolbar">
           <input type="text" id="search" placeholder="Filtrar por ejercicio..." />
-          <button id="clear-all" class="danger">Borrar todo</button>
+          <button id="clear-all" class="danger" type="button">Borrar todo</button>
         </div>
         <div class="table-wrapper">
           <table>
@@ -90,7 +125,7 @@
       </section>
 
       <section class="card">
-        <h2>Récords por ejercicio (1 serie)</h2>
+        <h2>Records por ejercicio (1 serie)</h2>
         <ul id="records-list"></ul>
       </section>
     </main>
