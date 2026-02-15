@@ -33,21 +33,35 @@
               </g>
             </svg>
           </div>
-          <span class="login-chip">Gym Access</span>
+          <span class="login-chip">Gym Social</span>
         </div>
         <h1>Gym Tracker</h1>
-        <p>Accede con tu usuario para registrar tus ejercicios.</p>
-        <form id="login-form" class="login-form">
+        <p>Accede con tu cuenta o entra con Twitter (modo local).</p>
+
+        <div class="auth-toggle" role="tablist" aria-label="Modo de acceso">
+          <button id="tab-login" class="auth-tab active" type="button" role="tab" aria-selected="true">Entrar</button>
+          <button id="tab-register" class="auth-tab" type="button" role="tab" aria-selected="false">Crear cuenta</button>
+        </div>
+
+        <form id="auth-form" class="login-form">
           <label>
             Usuario
-            <input type="text" id="login-user" required />
+            <input type="text" id="auth-user" required />
           </label>
           <label>
             Contrasena
-            <input type="password" id="login-pass" required />
+            <input type="password" id="auth-pass" required />
           </label>
-          <button type="submit">Entrar</button>
+          <label id="confirm-wrap" class="hidden">
+            Confirmar contrasena
+            <input type="password" id="auth-pass-confirm" />
+          </label>
+          <button id="auth-submit" type="submit">Entrar</button>
         </form>
+
+        <div class="social-login">
+          <button id="twitter-login" type="button" class="twitter-btn">Entrar con Twitter</button>
+        </div>
         <p id="login-error" class="login-error" aria-live="polite"></p>
       </section>
     </main>
@@ -61,104 +75,328 @@
         <button id="logout-btn" class="neutral" type="button">Salir</button>
       </header>
 
-      <section class="card planner-card">
-        <h2>Que deseas trabajar hoy</h2>
-        <p class="section-intro">Selecciona un grupo muscular y luego el ejercicio para cargarlo en el registro.</p>
-        <div class="muscle-options" id="muscle-options">
-          <button type="button" class="muscle-btn" data-group="pierna">Pierna</button>
-          <button type="button" class="muscle-btn" data-group="pecho">Pecho</button>
-          <button type="button" class="muscle-btn" data-group="espalda">Espalda</button>
-        </div>
-        <div id="exercise-menu" class="exercise-menu hidden">
-          <p class="menu-title">
-            Ejercicios sugeridos para <strong id="selected-group-label"></strong>
-          </p>
-          <div id="exercise-options" class="exercise-options"></div>
+      <nav class="app-nav" aria-label="Secciones">
+        <button class="nav-tab active" type="button" data-view="home">Inicio</button>
+        <button class="nav-tab" type="button" data-view="workout">Entrenamiento</button>
+        <button class="nav-tab" type="button" data-view="stats">Estadisticas</button>
+        <button class="nav-tab" type="button" data-view="profile">Mi perfil</button>
+        <button id="admin-tab" class="nav-tab hidden" type="button" data-view="admin">Admin</button>
+      </nav>
+
+      <section id="view-home" class="app-view">
+        <div class="home-grid">
+          <section class="card feed-card">
+            <h2>Tendencias fitness</h2>
+            <p class="section-intro">Noticias cortas, tips y tendencias de la comunidad fitness global.</p>
+            <div id="feed-list" class="feed-list"></div>
+            <div class="form-actions">
+              <button id="load-more-trends" type="button">Ver mas tendencias</button>
+            </div>
+          </section>
+
+          <aside class="home-side">
+            <section class="card">
+              <h2>Comunidad</h2>
+              <p class="section-intro">Usuarios activos y acceso rapido a mensaje privado.</p>
+              <div id="community-user-list" class="community-user-list"></div>
+            </section>
+          </aside>
         </div>
       </section>
 
-      <section class="card">
-        <h2>Registrar ejercicio</h2>
-        <p class="section-intro">Registra tus series del dia. Puedes editar el nombre del ejercicio si quieres.</p>
-        <form id="entry-form">
-          <div class="grid">
-            <label>
-              Fecha
-              <input type="date" id="date" required />
+      <section id="view-workout" class="app-view hidden">
+        <div class="two-col">
+          <section class="card planner-card">
+            <h2>Que deseas trabajar hoy</h2>
+            <p class="section-intro">Elige grupo muscular y recibe recomendaciones inteligentes.</p>
+            <div class="muscle-options" id="muscle-options">
+              <button type="button" class="muscle-btn" data-group="pierna" aria-label="Pierna" title="Pierna"><span>🦵</span><small>Pierna</small></button>
+              <button type="button" class="muscle-btn" data-group="pecho" aria-label="Pecho" title="Pecho"><span>🫀</span><small>Pecho</small></button>
+              <button type="button" class="muscle-btn" data-group="espalda" aria-label="Espalda" title="Espalda"><span>🏋️</span><small>Espalda</small></button>
+              <button type="button" class="muscle-btn" data-group="hombro" aria-label="Hombro" title="Hombro"><span>💪</span><small>Hombro</small></button>
+            </div>
+            <div id="exercise-menu" class="exercise-menu hidden">
+              <p class="menu-title">Ejercicios sugeridos para <strong id="selected-group-label"></strong></p>
+              <div id="exercise-options" class="exercise-options"></div>
+            </div>
+          </section>
+
+          <section class="card recommendation-card">
+            <h2>Rutina recomendada</h2>
+            <label class="routine-picker">
+              Estilo de rutina
+              <select id="routine-style">
+                <option value="hypertrophy">Hipertrofia clasica</option>
+                <option value="heavy-duty">Heavy Duty</option>
+                <option value="ppl">Push Pull Legs</option>
+                <option value="upper-lower">Upper / Lower</option>
+                <option value="full-body">Full Body</option>
+              </select>
             </label>
-            <label>
-              Ejercicio
-              <input type="text" id="exercise" placeholder="Ej: Sentadilla" required />
-            </label>
-            <label>
-              Series
-              <input type="number" id="sets" min="1" required />
-            </label>
-            <label>
-              Reps
-              <input type="number" id="reps" min="1" required />
-            </label>
-            <label>
-              Peso (kg)
-              <input type="number" id="weight" min="0" step="0.5" required />
-            </label>
-            <label>
-              Notas
-              <input type="text" id="notes" placeholder="Opcional" />
-            </label>
+            <p class="section-intro" id="recommendation-intro">Selecciona un grupo muscular para generar una rutina.</p>
+            <ul id="recommendation-list" class="recommendation-list">
+              <li>Sin recomendaciones por ahora.</li>
+            </ul>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>Estadisticas rapidas</h2>
+          <div class="stats quick-stats">
+            <article>
+              <h3>Entradas</h3>
+              <p id="quick-total-entries">0</p>
+            </article>
+            <article>
+              <h3>Volumen total (kg)</h3>
+              <p id="quick-total-volume">0</p>
+            </article>
+            <article>
+              <h3>Ultimo entrenamiento</h3>
+              <p id="quick-last-workout">-</p>
+            </article>
           </div>
-          <button type="submit">Guardar</button>
-        </form>
+        </section>
+
+        <section class="card">
+          <h2>Registrar ejercicio</h2>
+          <p class="section-intro">Carga tus series con una vista mas limpia y organizada.</p>
+          <form id="entry-form" class="entry-form">
+            <div class="grid">
+              <label>
+                Fecha
+                <input type="date" id="date" required />
+              </label>
+              <label>
+                Ejercicio
+                <input type="text" id="exercise" placeholder="Ej: Sentadilla" required />
+              </label>
+              <label>
+                Series
+                <input type="number" id="sets" min="1" required />
+              </label>
+              <label>
+                Reps
+                <input type="number" id="reps" min="1" required />
+              </label>
+              <label>
+                Peso (kg)
+                <input type="number" id="weight" min="0" step="0.5" required />
+              </label>
+              <label>
+                Notas
+                <input type="text" id="notes" placeholder="Opcional" />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit">Guardar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card">
+          <h2>Historial</h2>
+          <div class="toolbar">
+            <input type="text" id="search" placeholder="Filtrar por ejercicio..." />
+            <button id="clear-all" class="danger" type="button">Borrar todo</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Ejercicio</th>
+                  <th>Series</th>
+                  <th>Reps</th>
+                  <th>Peso</th>
+                  <th>Volumen</th>
+                  <th>Notas</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="entries-body"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
 
-      <section class="card">
-        <h2>Resumen</h2>
-        <div class="stats">
-          <article>
-            <h3>Entradas</h3>
-            <p id="total-entries">0</p>
-          </article>
-          <article>
-            <h3>Volumen total (kg)</h3>
-            <p id="total-volume">0</p>
-          </article>
-          <article>
-            <h3>Ultimo entrenamiento</h3>
-            <p id="last-workout">-</p>
-          </article>
-        </div>
+      <section id="view-stats" class="app-view hidden">
+        <section class="card">
+          <h2>Resumen general</h2>
+          <div class="stats">
+            <article>
+              <h3>Entradas</h3>
+              <p id="total-entries">0</p>
+            </article>
+            <article>
+              <h3>Volumen total (kg)</h3>
+              <p id="total-volume">0</p>
+            </article>
+            <article>
+              <h3>Ultimo entrenamiento</h3>
+              <p id="last-workout">-</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Resultados por periodo</h2>
+          <p class="section-intro">Consulta tu progreso acumulado por dia, mes y ano.</p>
+          <label class="period-picker">
+            Fecha de referencia
+            <input type="date" id="period-date" />
+          </label>
+          <div class="stats">
+            <article>
+              <h3>Dia</h3>
+              <p id="period-day">0 ejercicios | 0 kg</p>
+            </article>
+            <article>
+              <h3>Mes</h3>
+              <p id="period-month">0 ejercicios | 0 kg</p>
+            </article>
+            <article>
+              <h3>Ano</h3>
+              <p id="period-year">0 ejercicios | 0 kg</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Records por ejercicio (1 serie)</h2>
+          <ul id="records-list"></ul>
+        </section>
       </section>
 
-      <section class="card">
-        <h2>Historial</h2>
-        <div class="toolbar">
-          <input type="text" id="search" placeholder="Filtrar por ejercicio..." />
-          <button id="clear-all" class="danger" type="button">Borrar todo</button>
+      <section id="view-profile" class="app-view hidden">
+        <div class="two-col">
+          <section class="card profile-card">
+            <div class="profile-cover"></div>
+            <div class="profile-avatar-wrap">
+              <img id="profile-avatar" class="profile-avatar" alt="Foto de perfil" src="" />
+              <label class="avatar-upload">
+                Cambiar foto
+                <input id="profile-photo" type="file" accept="image/*" />
+              </label>
+            </div>
+            <h2>Informacion personal</h2>
+            <form id="profile-form" class="grid">
+              <label>
+                Nombre
+                <input type="text" id="profile-name" />
+              </label>
+              <label>
+                Edad
+                <input type="number" id="profile-age" min="0" />
+              </label>
+              <label>
+                Altura (cm)
+                <input type="number" id="profile-height" min="0" />
+              </label>
+              <label>
+                Peso (kg)
+                <input type="number" id="profile-weight" min="0" step="0.1" />
+              </label>
+              <label>
+                Objetivo
+                <input type="text" id="profile-goal" placeholder="Ej: Ganar masa muscular" />
+              </label>
+              <label>
+                Rutina favorita
+                <select id="profile-routine">
+                  <option value="hypertrophy">Hipertrofia clasica</option>
+                  <option value="heavy-duty">Heavy Duty</option>
+                  <option value="ppl">Push Pull Legs</option>
+                  <option value="upper-lower">Upper / Lower</option>
+                  <option value="full-body">Full Body</option>
+                </select>
+              </label>
+            </form>
+            <div class="form-actions">
+              <button id="save-profile" type="button">Guardar perfil</button>
+            </div>
+            <p id="profile-message" class="muted-message"></p>
+          </section>
+
+          <section class="card">
+            <h2>Ejercicios favoritos</h2>
+            <p class="section-intro">Guarda tus movimientos clave para acceso rapido.</p>
+            <div class="favorite-add">
+              <input id="favorite-input" type="text" placeholder="Ej: Sentadilla frontal" />
+              <button id="add-favorite" type="button">Agregar</button>
+            </div>
+            <ul id="favorite-list" class="favorite-list"></ul>
+          </section>
         </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Ejercicio</th>
-                <th>Series</th>
-                <th>Reps</th>
-                <th>Peso</th>
-                <th>Volumen</th>
-                <th>Notas</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="entries-body"></tbody>
-          </table>
-        </div>
+
+        <section class="card">
+          <h2>Mi muro</h2>
+          <p class="section-intro">Publica avances, rutinas y notas para tu perfil.</p>
+          <form id="post-form" class="post-form">
+            <textarea id="post-input" rows="3" maxlength="280" placeholder="Escribe algo sobre tu entrenamiento..."></textarea>
+            <div class="form-actions">
+              <button type="submit">Publicar</button>
+            </div>
+          </form>
+          <div id="my-posts-list" class="feed-list"></div>
+        </section>
       </section>
 
-      <section class="card">
-        <h2>Records por ejercicio (1 serie)</h2>
-        <ul id="records-list"></ul>
+      <section id="view-admin" class="app-view hidden">
+        <section class="card">
+          <h2>Dashboard de administracion</h2>
+          <div class="stats">
+            <article>
+              <h3>Usuarios registrados</h3>
+              <p id="admin-users-count">0</p>
+            </article>
+            <article>
+              <h3>Publicaciones</h3>
+              <p id="admin-posts-count">0</p>
+            </article>
+            <article>
+              <h3>Mensajes chat</h3>
+              <p id="admin-messages-count">0</p>
+            </article>
+            <article>
+              <h3>Entradas de entrenamiento</h3>
+              <p id="admin-entries-count">0</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Usuarios y actividad</h2>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Proveedor</th>
+                  <th>Entradas</th>
+                  <th>Publicaciones</th>
+                  <th>Objetivo</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-body"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
     </main>
+
+    <section id="chat-panel" class="chat-panel hidden" aria-label="Chat privado">
+      <header class="chat-panel-header">
+        <strong id="chat-with">Chat privado</strong>
+        <button id="chat-close" type="button" class="inline-button">Cerrar</button>
+      </header>
+      <div id="chat-messages" class="chat-messages"></div>
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" type="text" placeholder="Escribe un mensaje..." />
+        <button type="submit">Enviar</button>
+      </form>
+    </section>
 
     <script src="./app.js"></script>
   </body>
