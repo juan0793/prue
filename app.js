@@ -1,5 +1,6 @@
 ﻿const STORAGE_KEY = "gym-tracker-entries-v1";
 const AUTH_KEY = "gym-tracker-auth-v1";
+const AUTH_NAME_KEY = "gym-tracker-auth-name-v1";
 const AUTH_USER = "admin";
 const AUTH_PASS = "12345";
 
@@ -10,6 +11,7 @@ const loginUserInput = document.querySelector("#login-user");
 const loginPassInput = document.querySelector("#login-pass");
 const loginError = document.querySelector("#login-error");
 const logoutButton = document.querySelector("#logout-btn");
+const welcomeMessage = document.querySelector("#welcome-message");
 
 const form = document.querySelector("#entry-form");
 const entriesBody = document.querySelector("#entries-body");
@@ -22,6 +24,8 @@ const lastWorkoutEl = document.querySelector("#last-workout");
 const recordsListEl = document.querySelector("#records-list");
 
 let entries = loadEntries();
+let authFallback = false;
+let authNameFallback = "";
 
 init();
 
@@ -47,11 +51,12 @@ function init() {
 function onLoginSubmit(event) {
   event.preventDefault();
 
-  const user = loginUserInput.value.trim();
+  const userRaw = loginUserInput.value.trim();
+  const user = userRaw.toLowerCase();
   const pass = loginPassInput.value.trim();
 
   if (user === AUTH_USER && pass === AUTH_PASS) {
-    sessionStorage.setItem(AUTH_KEY, "1");
+    setAuthState(true, userRaw || AUTH_USER);
     loginForm.reset();
     loginError.textContent = "";
     showApp();
@@ -63,12 +68,40 @@ function onLoginSubmit(event) {
 }
 
 function onLogout() {
-  sessionStorage.removeItem(AUTH_KEY);
+  setAuthState(false, "");
   showLogin();
 }
 
 function isAuthenticated() {
-  return sessionStorage.getItem(AUTH_KEY) === "1";
+  try {
+    return sessionStorage.getItem(AUTH_KEY) === "1" || authFallback;
+  } catch {
+    return authFallback;
+  }
+}
+
+function setAuthState(isAuthenticatedValue, userName) {
+  authFallback = isAuthenticatedValue;
+  authNameFallback = userName;
+  try {
+    if (isAuthenticatedValue) {
+      sessionStorage.setItem(AUTH_KEY, "1");
+      sessionStorage.setItem(AUTH_NAME_KEY, userName);
+    } else {
+      sessionStorage.removeItem(AUTH_KEY);
+      sessionStorage.removeItem(AUTH_NAME_KEY);
+    }
+  } catch {
+    // Fallback in-memory when sessionStorage is not available.
+  }
+}
+
+function getAuthName() {
+  try {
+    return sessionStorage.getItem(AUTH_NAME_KEY) || authNameFallback || AUTH_USER;
+  } catch {
+    return authNameFallback || AUTH_USER;
+  }
 }
 
 function showLogin() {
@@ -80,6 +113,7 @@ function showLogin() {
 function showApp() {
   loginView.classList.add("hidden");
   appRoot.classList.remove("hidden");
+  welcomeMessage.textContent = `Bienvenido ${getAuthName()}`;
 }
 
 function onSubmit(event) {
