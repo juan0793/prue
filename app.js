@@ -17,6 +17,11 @@ const form = document.querySelector("#entry-form");
 const entriesBody = document.querySelector("#entries-body");
 const searchInput = document.querySelector("#search");
 const clearAllButton = document.querySelector("#clear-all");
+const muscleOptionsEl = document.querySelector("#muscle-options");
+const exerciseMenuEl = document.querySelector("#exercise-menu");
+const selectedGroupLabelEl = document.querySelector("#selected-group-label");
+const exerciseOptionsEl = document.querySelector("#exercise-options");
+const exerciseInput = document.querySelector("#exercise");
 
 const totalEntriesEl = document.querySelector("#total-entries");
 const totalVolumeEl = document.querySelector("#total-volume");
@@ -26,6 +31,35 @@ const recordsListEl = document.querySelector("#records-list");
 let entries = loadEntries();
 let authFallback = false;
 let authNameFallback = "";
+let selectedGroup = "";
+
+const WORKOUT_CATALOG = {
+  pierna: [
+    "Sentadilla",
+    "Prensa",
+    "Peso muerto rumano",
+    "Zancadas",
+    "Extension de cuadriceps",
+    "Curl femoral",
+    "Elevaciones de gemelo",
+  ],
+  pecho: [
+    "Press banca",
+    "Press inclinado",
+    "Press con mancuernas",
+    "Aperturas con mancuernas",
+    "Fondos en paralelas",
+    "Cruce en polea",
+  ],
+  espalda: [
+    "Dominadas",
+    "Jalon al pecho",
+    "Remo con barra",
+    "Remo en maquina",
+    "Peso muerto",
+    "Face pull",
+  ],
+};
 
 init();
 
@@ -39,6 +73,7 @@ function init() {
   form.addEventListener("submit", onSubmit);
   searchInput.addEventListener("input", render);
   clearAllButton.addEventListener("click", onClearAll);
+  muscleOptionsEl.addEventListener("click", onMuscleGroupClick);
 
   if (isAuthenticated()) {
     showApp();
@@ -133,7 +168,61 @@ function onSubmit(event) {
   persistEntries();
   form.reset();
   document.querySelector("#date").value = new Date().toISOString().slice(0, 10);
+  if (selectedGroup) {
+    const firstSuggestion = WORKOUT_CATALOG[selectedGroup]?.[0] || "";
+    exerciseInput.value = firstSuggestion;
+  }
   render();
+}
+
+function onMuscleGroupClick(event) {
+  const button = event.target.closest("button[data-group]");
+  if (!button) return;
+
+  selectedGroup = button.dataset.group;
+  renderMuscleButtons();
+  renderExerciseMenu();
+}
+
+function renderMuscleButtons() {
+  muscleOptionsEl.querySelectorAll("button[data-group]").forEach((button) => {
+    const isActive = button.dataset.group === selectedGroup;
+    button.classList.toggle("active", isActive);
+  });
+}
+
+function renderExerciseMenu() {
+  const exercises = WORKOUT_CATALOG[selectedGroup] || [];
+
+  if (!selectedGroup || !exercises.length) {
+    exerciseMenuEl.classList.add("hidden");
+    exerciseOptionsEl.innerHTML = "";
+    return;
+  }
+
+  selectedGroupLabelEl.textContent = capitalize(selectedGroup);
+  exerciseMenuEl.classList.remove("hidden");
+  exerciseOptionsEl.innerHTML = "";
+
+  for (const exerciseName of exercises) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "exercise-chip";
+    chip.textContent = exerciseName;
+    chip.addEventListener("click", () => {
+      exerciseInput.value = exerciseName;
+      exerciseInput.focus();
+      animateExerciseSelection(chip);
+    });
+    exerciseOptionsEl.appendChild(chip);
+  }
+}
+
+function animateExerciseSelection(chip) {
+  exerciseOptionsEl.querySelectorAll(".exercise-chip").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+  chip.classList.add("active");
 }
 
 function onDelete(id) {
@@ -266,4 +355,8 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

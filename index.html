@@ -61,6 +61,21 @@
         <button id="logout-btn" class="neutral" type="button">Salir</button>
       </header>
 
+      <section class="card planner-card">
+        <h2>Que deseas trabajar hoy</h2>
+        <div class="muscle-options" id="muscle-options">
+          <button type="button" class="muscle-btn" data-group="pierna">Pierna</button>
+          <button type="button" class="muscle-btn" data-group="pecho">Pecho</button>
+          <button type="button" class="muscle-btn" data-group="espalda">Espalda</button>
+        </div>
+        <div id="exercise-menu" class="exercise-menu hidden">
+          <p class="menu-title">
+            Ejercicios sugeridos para <strong id="selected-group-label"></strong>
+          </p>
+          <div id="exercise-options" class="exercise-options"></div>
+        </div>
+      </section>
+
       <section class="card">
         <h2>Registrar ejercicio</h2>
         <form id="entry-form">
