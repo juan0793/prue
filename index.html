@@ -128,13 +128,14 @@
       <section id="view-workout" class="app-view hidden">
         <div class="two-col">
           <section class="card planner-card">
-            <h2>Que deseas trabajar hoy</h2>
-            <p class="section-intro">Elige grupo muscular y recibe recomendaciones inteligentes.</p>
+            <h2>Planifica tu sesion</h2>
+            <p class="section-intro">Selecciona grupo muscular y te guiamos con una rutina clara y ordenada.</p>
             <div class="muscle-options" id="muscle-options">
               <button type="button" class="muscle-btn" data-group="pierna" aria-label="Pierna" title="Pierna"><span>🦵</span><small>Pierna</small></button>
               <button type="button" class="muscle-btn" data-group="pecho" aria-label="Pecho" title="Pecho"><span>🫀</span><small>Pecho</small></button>
               <button type="button" class="muscle-btn" data-group="espalda" aria-label="Espalda" title="Espalda"><span>🏋️</span><small>Espalda</small></button>
               <button type="button" class="muscle-btn" data-group="hombro" aria-label="Hombro" title="Hombro"><span>💪</span><small>Hombro</small></button>
+              <button type="button" class="muscle-btn" data-group="brazos" aria-label="Brazos" title="Brazos"><span>💪🏻</span><small>Brazos</small></button>
               <button type="button" class="muscle-btn" data-group="gemelo" aria-label="Gemelo" title="Gemelo"><span>🦿</span><small>Gemelo</small></button>
               <button type="button" class="muscle-btn" data-group="gluteo" aria-label="Gluteo" title="Gluteo"><span>🍑</span><small>Gluteo</small></button>
             </div>
@@ -206,7 +207,7 @@
 
         <section class="card">
           <h2>Registrar ejercicio</h2>
-          <p class="section-intro">Carga tus series con una vista mas limpia y organizada.</p>
+          <p class="section-intro">Ingresa tus series de forma rapida y visual. Todo queda guardado automaticamente.</p>
           <form id="entry-form" class="entry-form">
             <div class="grid">
               <label>
@@ -346,6 +347,12 @@
           <div id="ai-coach-summary" class="daily-insight">Sin datos semanales para analizar.</div>
           <ul id="grouped-stats-list" class="grouped-stats-list"></ul>
         </section>
+
+        <section class="card">
+          <h2>Grafico de barras semanal</h2>
+          <p class="section-intro">Volumen total por grupo muscular en los ultimos 7 dias.</p>
+          <div id="weekly-bar-chart" class="bar-chart"></div>
+        </section>
       </section>
 
       <section id="view-profile" class="app-view hidden">
@@ -411,6 +418,21 @@
               <button id="add-favorite" type="button">Agregar</button>
             </div>
             <ul id="favorite-list" class="favorite-list"></ul>
+          </section>
+        </div>
+
+        <div class="two-col">
+          <section class="card">
+            <h2>Guardados de inicio</h2>
+            <p class="section-intro">Contenido que guardaste desde Logros, Comida y Recuperacion.</p>
+            <div id="profile-saved-list" class="saved-content-list"></div>
+          </section>
+
+          <section class="card">
+            <h2>Logros y recomendaciones</h2>
+            <p class="section-intro">Sugerencias inteligentes para el siguiente paso.</p>
+            <ul id="profile-achievement-list" class="profile-achievement-list"></ul>
+            <ul id="profile-recommendation-list" class="profile-recommendation-list"></ul>
           </section>
         </div>
 
